@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  message   String
+  type      String   // e.g. "transfer_in", "transfer_out", "account_switch", "card_issued"
+  read      Boolean  @default(false)
+  transactionId Int?     // новый опциональный ключ
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Card {
+  id            Int      @id @default(autoincrement())
+  cardNumber    String   @unique
+  expiryMonth   Int
+  expiryYear    Int
+  cvv           String
+  paymentSystem String   // Mir, Visa, Mastercard
+  isActive      Boolean  @default(true)
+
+  accountId     Int
+  account       Account  @relation(fields: [accountId], references: [id])
+
+  createdAt     DateTime @default(now())
+}
+
+model User {
+  id              Int       @id @default(autoincrement())
+  clientId        String    @unique
+  password        String
+  name            String?
+  surname         String?
+
+  phone           String?  @unique
+
+  activeAccountId Int?
+  accounts        Account[]
+  notifications Notification[]
+}
+
+model Account {
+  id            Int      @id @default(autoincrement())
+  name          String
+  accountNumber String   @unique
+  currency      String
+  isActive      Boolean  @default(false)
+
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
+  
+
+  transactions  Transaction[]
+  cards         Card[]
+}
+
+model Transaction {
+  id          Int      @id @default(autoincrement())
+
+  accountId   Int
+  account     Account  @relation(fields: [accountId], references: [id])
+
+  amount      Float
+  type        String   // transfer_in | transfer_out
+  description String?
+
+  createdAt   DateTime @default(now())
+}
